@@ -44,10 +44,14 @@ def save_thank_you_letter(id, form_letter)
   end
 end
 
-def get_registration_pick_hour(hours)
-  pick_hours = hours.tally
-  pick_hour = pick_hours.max_by { |_hour, value| value }.first
-  p "peak registration hour is #{pick_hour}"
+def display_peak_times(hours, days)
+  peak_hours = hours.tally
+  peak_days = days.tally
+  peak_hour = peak_hours.max_by { |_hour, value| value }.first
+  peak_day = peak_days.max_by { |_day, value| value }.first
+
+  days_of_week = %w[Sunday Monday Tuesday Wednesday Thursday Friday Saturday]
+  puts "Peak registration hour is #{peak_hour} and the peak day of the week is #{days_of_week[peak_day]}."
 end
 
 contents = CSV.open(
@@ -60,19 +64,30 @@ template_letter = File.read('form_letter.erb')
 erb_template = ERB.new template_letter
 
 registration_hours = []
+registration_days = []
+
 contents.each do |row|
   id = row[0]
   name = row[:first_name]
   zipcode = clean_zipcode(row[:zipcode])
   phone_number = clean_phone_number(row[:homephone])
   legislators = legislators_by_zipcode(zipcode)
+  registration_time = row[:regdate]
 
-  registration_hours.push(Time.strptime(row[:regdate], '%m/%d/%y %H:%M').hour)
+  begin
+    time = Time.strptime(registration_time, '%m/%d/%y %H:%M')
+  rescue ArgumentError => e
+    puts "Error parsing registration time for #{name}: #{e.message}"
+    next
+  end
+
+  registration_hours.push(time.hour)
+  registration_days.push(time.wday)
+
   form_letter = erb_template.result(binding)
-
   save_thank_you_letter(id, form_letter)
 
-  puts "#{name} - #{zipcode} - #{phone_number}"
+  puts "#{name} - #{zipcode} - #{phone_number} - Registered on #{time.strftime('%A, %b %d at %I:%M %p')}"
 end
 
-get_registration_pick_hour(registration_hours)
+display_peak_times(registration_hours, registration_days)
