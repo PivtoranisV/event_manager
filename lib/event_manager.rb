@@ -44,6 +44,12 @@ def save_thank_you_letter(id, form_letter)
   end
 end
 
+def get_registration_pick_hour(hours)
+  pick_hours = hours.tally
+  pick_hour = pick_hours.max_by { |_hour, value| value }.first
+  p "peak registration hour is #{pick_hour}"
+end
+
 contents = CSV.open(
   'event_attendees.csv',
   headers: true,
@@ -53,6 +59,7 @@ contents = CSV.open(
 template_letter = File.read('form_letter.erb')
 erb_template = ERB.new template_letter
 
+registration_hours = []
 contents.each do |row|
   id = row[0]
   name = row[:first_name]
@@ -60,9 +67,12 @@ contents.each do |row|
   phone_number = clean_phone_number(row[:homephone])
   legislators = legislators_by_zipcode(zipcode)
 
+  registration_hours.push(Time.strptime(row[:regdate], '%m/%d/%y %H:%M').hour)
   form_letter = erb_template.result(binding)
 
   save_thank_you_letter(id, form_letter)
 
   puts "#{name} - #{zipcode} - #{phone_number}"
 end
+
+get_registration_pick_hour(registration_hours)
