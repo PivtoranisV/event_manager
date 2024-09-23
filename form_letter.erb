@@ -26,5 +26,8 @@
       <td><%= "#{legislators}" %></td>
     <% end %>
   </table>
+<% if phone_number.count('0-9') == 10 %>
+  <p>In the future, we will send alerts about similar conferences to your mobile number (<%= phone_number %>)</p>
+  <% end %>
 </body>
 </html>
